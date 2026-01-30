@@ -1,5 +1,10 @@
-import os, socket, datetime
+import os, socket, datetime, subprocess
 from cryptography.fernet import Fernet
+
+if os.name == "nt":
+    os.system("cls")
+else:
+    os.system("clear")
 
 PORT = 1337
 TODAY = datetime.date.today().strftime("%Y-%m-%d")
@@ -27,12 +32,14 @@ while True:
     if int(T_PASW.decode()) != T_PASW_CHECK:
         conn.close()
         print(addr[0], " Wrong T_PASW_CHECK")
+        continue
     
     # Now my pasw, which i made
     H_PASW = fernet.decrypt( conn.recv(1024) ).decode()
     if H_PASW != MY_PASW:
         conn.close()
         print(addr[0], "Wrong MY_PASW")
+        continue
     
     # now, finally, the terminal logic :)
     while True:
@@ -40,9 +47,19 @@ while True:
 
         if CMD.startswith("cd "):
             os.chdir(CMD.replace("cd ", ""))
+            conn.send( fernet.encrypt(b"OK [command w/o output]") )
         elif CMD == "exit":
             conn.close()
             print(addr[0], " typed exit")
             break
         else:
-            os.system(CMD)
+            try:
+                result = subprocess.run(CMD, shell=True, capture_output=True, text=True)
+                out = result.stdout + result.stderr
+                if not out:
+                    out = "OK [command w/o output]"
+            except Exception as e:
+                out = e
+                print("Exception: ", e)
+            
+            conn.send( fernet.encrypt(out.encode()) )

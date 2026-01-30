@@ -6,6 +6,16 @@ if os.name == "nt":
 else:
     os.system("clear")
 
+def recv_exact(sock, n):
+    data = b""
+    while len(data) < n:
+        chunk = sock.recv(n - len(data))
+        if not chunk:
+            raise ConnectionError("Socket closed")
+        data += chunk
+    return data
+
+
 PORT = 1337
 TODAY = datetime.date.today().strftime("%Y-%m-%d")
 MY_PASW = input("Your Password for the session: ") or "remote-terminal"
@@ -28,14 +38,16 @@ while True:
     T_PASW_CHECK = 0
     for i in T_PASW_CHECK_list:
         T_PASW_CHECK += int(i)
-    T_PASW = fernet.decrypt( conn.recv(1024) )
+    length = int.from_bytes(recv_exact(conn, 4), "big")
+    T_PASW = fernet.decrypt(recv_exact(conn, length))
     if int(T_PASW.decode()) != T_PASW_CHECK:
         conn.close()
         print(addr[0], " Wrong T_PASW_CHECK")
         continue
     
     # Now my pasw, which i made
-    H_PASW = fernet.decrypt( conn.recv(1024) ).decode()
+    length = int.from_bytes(recv_exact(conn, 4), "big")
+    H_PASW = fernet.decrypt(recv_exact(conn, length)).decode()
     if H_PASW != MY_PASW:
         conn.close()
         print(addr[0], "Wrong MY_PASW")
@@ -43,7 +55,8 @@ while True:
     
     # now, finally, the terminal logic :)
     while True:
-        CMD = fernet.decrypt( conn.recv(4096) ).decode()
+        length = int.from_bytes(recv_exact(conn, 4), "big")
+        CMD = fernet.decrypt(recv_exact(conn, length)).decode()
 
         if CMD.startswith("cd "):
             try:
@@ -57,7 +70,7 @@ while True:
             break
         else:
             try:
-                result = subprocess.run(CMD, shell=True, capture_output=True, text=True)
+                result = subprocess.run(CMD, shell=True, capture_output=True, text=True, encoding="cp1252", errors="replace")
                 out = result.stdout + result.stderr
                 if not out:
                     out = "OK [command w/o output]"
@@ -65,4 +78,5 @@ while True:
                 out = str(e)
                 print("Exception: ", e)
             
-            conn.send( fernet.encrypt(out.encode()) )
+            data = fernet.encrypt(out.encode())
+            conn.sendall(len(data).to_bytes(4, "big") + data)

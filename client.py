@@ -17,6 +17,16 @@ for i in T_PASW_CHECK_list:
     T_PASW_CHECK += int(i)
 
 
+def recv_exact(sock, n):
+    data = b""
+    while len(data) < n:
+        chunk = sock.recv(n - len(data))
+        if not chunk:
+            raise ConnectionError("Socket closed")
+        data += chunk
+    return data
+
+
 #connection
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect((IP, PORT))
@@ -28,22 +38,26 @@ client.send(ENC_KEY)
 
 time.sleep(0.5)
 # T_PASW check
-client.send( fernet.encrypt(str(T_PASW_CHECK).encode()) )
+data = fernet.encrypt(str(T_PASW_CHECK).encode())
+client.sendall(len(data).to_bytes(4, "big") + data)
 
 time.sleep(0.5)
 # H_PASW check
-client.send( fernet.encrypt(H_PASW.encode()) )
+data = fernet.encrypt(H_PASW.encode())
+client.sendall(len(data).to_bytes(4, "big") + data)
 
 # now the fun part :)
 # aka the terminal using
 
 while True:
     CMD = input("\n====================\n-> ")
-    client.send( fernet.encrypt(CMD.encode()) )
+    data = fernet.encrypt(CMD.encode())
+    client.sendall(len(data).to_bytes(4, "big") + data)
 
     if CMD == "exit":
         client.close()
         break
 
-    out = client.recv(8192)
-    print(fernet.decrypt(out).decode())
+    length = int.from_bytes(recv_exact(client, 4), "big")
+    out = fernet.decrypt(recv_exact(client, length)).decode()
+    print(out)

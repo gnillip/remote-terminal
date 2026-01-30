@@ -46,8 +46,11 @@ while True:
         CMD = fernet.decrypt( conn.recv(4096) ).decode()
 
         if CMD.startswith("cd "):
-            os.chdir(CMD.replace("cd ", ""))
-            conn.send( fernet.encrypt(b"OK [command w/o output]") )
+            try:
+                os.chdir(CMD.replace("cd ", ""))
+                conn.send( fernet.encrypt(b"OK [command w/o output]") )
+            except PermissionError:
+                conn.send( fernet.encrypt(b"You don't have Permission to go there!") )
         elif CMD == "exit":
             conn.close()
             print(addr[0], " typed exit")

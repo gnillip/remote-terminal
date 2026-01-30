@@ -24,7 +24,7 @@ while True:
     for i in T_PASW_CHECK_list:
         T_PASW_CHECK += int(i)
     T_PASW = fernet.decrypt( conn.recv(1024) )
-    if int(T_PASW.decode()) != T_PASW:
+    if int(T_PASW.decode()) != T_PASW_CHECK:
         conn.close()
         print(addr[0], " Wrong T_PASW_CHECK")
     

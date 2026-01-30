@@ -62,7 +62,7 @@ while True:
                 if not out:
                     out = "OK [command w/o output]"
             except Exception as e:
-                out = e
+                out = str(e)
                 print("Exception: ", e)
             
             conn.send( fernet.encrypt(out.encode()) )

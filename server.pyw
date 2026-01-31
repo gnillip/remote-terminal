@@ -65,6 +65,17 @@ while True:
                 except PermissionError:
                     msg = fernet.encrypt(b"You don't have Permission to go there!")
                     conn.sendall(len(msg).to_bytes(4, "big") + msg)
+            elif CMD.startswith("recv "):
+                try:
+                    DATEINAME = CMD.replace("recv ", "")
+                    DATEIINHALT = open(DATEINAME, "rb").read()
+                    DATEI_VER = fernet.encrypt(DATEIINHALT)
+                    conn.sendall(len(DATEI_VER).to_bytes(4, "big") + DATEI_VER)
+
+                    msg = fernet.encrypt(b"OK [command w/o output]")
+                    conn.sendall(len(msg).to_bytes(4, "big") + msg)
+                except FileNotFoundError:
+                    conn.sendall(len("File not found.").to_bytes(4, "big") + "File not found.".encode())
             elif CMD == "exit":
                 conn.close()
                 print(addr[0], " typed exit")

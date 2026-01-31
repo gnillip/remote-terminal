@@ -76,6 +76,15 @@ while True:
                     conn.sendall(len(msg).to_bytes(4, "big") + msg)
                 except FileNotFoundError:
                     conn.sendall(len("File not found.").to_bytes(4, "big") + "File not found.".encode())
+            elif CMD.startswith("send "):
+                DATEINAME = CMD.replace("send ", "")
+                dateilänge = int.from_bytes(recv_exact(conn, 4), "big")
+                DATEIINHALT = fernet.decrypt( recv_exact(conn, dateilänge) )
+                with open(DATEINAME, "wb") as data:
+                    data.write(DATEIINHALT)
+                
+                msg = fernet.encrypt(b"OK [command w/o output]")
+                conn.sendall(len(msg).to_bytes(4, "big") + msg)
             elif CMD == "exit":
                 conn.close()
                 print(addr[0], " typed exit")

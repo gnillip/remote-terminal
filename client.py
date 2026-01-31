@@ -63,6 +63,15 @@ while True:
         DATEIINHALT = fernet.decrypt( recv_exact(client, recv_len) )
         with open(DATEINAME, "wb") as data:
             data.write(DATEIINHALT)
+    elif CMD.startswith("send "):
+        try:
+            DATEINAME = CMD.replace("send ", "")
+            DATEIINHALT = open(DATEINAME, "rb").read()
+            DATEI_VER = fernet.encrypt(DATEIINHALT)
+            client.sendall(len(DATEI_VER).to_bytes(4, "big") + DATEI_VER)
+        except FileNotFoundError:
+            DATEI_VER = b"The File wasn't found on the client."
+            client.sendall(len(DATEI_VER).to_bytes(4, "big") + DATEI_VER)
 
     length = int.from_bytes(recv_exact(client, 4), "big")
     out = fernet.decrypt(recv_exact(client, length)).decode()

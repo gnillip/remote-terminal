@@ -1,4 +1,4 @@
-import os, socket, datetime, time
+import os, socket, datetime, time, hashlib
 from cryptography.fernet import Fernet
 
 if os.name == "nt":
@@ -9,12 +9,6 @@ else:
 PORT = 1337
 IP = input("IP: ")
 H_PASW = input("Password: ")
-
-TODAY = datetime.date.today().strftime("%Y-%m-%d")
-T_PASW_CHECK = 0
-T_PASW_CHECK_list = TODAY.split("-")
-for i in T_PASW_CHECK_list:
-    T_PASW_CHECK += int(i)
 
 
 def recv_exact(sock, n):
@@ -38,6 +32,12 @@ client.send(ENC_KEY)
 
 time.sleep(0.5)
 # T_PASW check
+nonce_length = int.from_bytes(recv_exact(client, 4), "big")
+nonce = fernet.decrypt( recv_exact(client, nonce_length) ).decode()
+
+T_PASW = "Rem-Ter!g"
+T_PASW_CHECK = hashlib.sha256((nonce+T_PASW).encode()).hexdigest()
+
 data = fernet.encrypt(str(T_PASW_CHECK).encode())
 client.sendall(len(data).to_bytes(4, "big") + data)
 

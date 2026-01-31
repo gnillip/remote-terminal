@@ -1,4 +1,4 @@
-import os, socket, datetime, subprocess
+import os, socket, datetime, subprocess, hashlib, random, string
 from cryptography.fernet import Fernet
 
 if os.name == "nt":
@@ -33,15 +33,13 @@ while True:
         ENC_KEY = conn.recv(44)
         fernet = Fernet(ENC_KEY)
 
-        # Check with time added together is the same, as in the client
-        # (other people dont know, that i use this as veryfying)
-        T_PASW_CHECK_list = TODAY.split("-")
-        T_PASW_CHECK = 0
-        for i in T_PASW_CHECK_list:
-            T_PASW_CHECK += int(i)
+        # send something, client sends sha256(something+Password)
+        nonce = "".join(random.choice(string.ascii_letters) for _ in range(7))
+        conn.sendall(len(fernet.encrypt(nonce.encode())).to_bytes(4, "big") + fernet.encrypt(nonce.encode()))
+        T_PASW_CHECK = hashlib.sha256((nonce+"Rem-Ter!g").encode()).hexdigest()
         length = int.from_bytes(recv_exact(conn, 4), "big")
         T_PASW = fernet.decrypt(recv_exact(conn, length))
-        if int(T_PASW.decode()) != T_PASW_CHECK:
+        if T_PASW.decode() != T_PASW_CHECK:
             conn.close()
             print(addr[0], " Wrong T_PASW_CHECK")
             continue
@@ -62,9 +60,11 @@ while True:
             if CMD.startswith("cd "):
                 try:
                     os.chdir(CMD.replace("cd ", ""))
-                    conn.send( fernet.encrypt(b"OK [command w/o output]") )
+                    msg = fernet.encrypt(b"OK [command w/o output]")
+                    conn.sendall(len(msg).to_bytes(4, "big") + msg)
                 except PermissionError:
-                    conn.send( fernet.encrypt(b"You don't have Permission to go there!") )
+                    msg = fernet.encrypt(b"You don't have Permission to go there!")
+                    conn.sendall(len(msg).to_bytes(4, "big") + msg)
             elif CMD == "exit":
                 conn.close()
                 print(addr[0], " typed exit")

@@ -20,6 +20,7 @@ PORT = 1337
 TODAY = datetime.date.today().strftime("%Y-%m-%d")
 MY_PASW = open("PASSWORD.txt", "r").read()
 SHANONCE_PASW = ["Rem-Ter!g", "Terry#Remus-g", "TR_!g", "G-2e+tr"]
+fehlversuchsliste = {}
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(("0.0.0.0", PORT))
@@ -30,6 +31,13 @@ while True:
     try:
         conn, addr = server.accept()
         print("Verbindung von: ", addr)
+        if addr[0] not in fehlversuchsliste:
+            fehlversuchsliste[addr[0]] = 0
+
+        if addr[0] in fehlversuchsliste:
+            if fehlversuchsliste[addr[0]] >= 3:
+                conn.close()
+                print(addr[0], " zu viele Fehlversuche -> BAN")
 
         # encryption key
         ENC_KEY = conn.recv(44)
@@ -46,6 +54,7 @@ while True:
             if U_PASW != T_PASW:
                 conn.close()
                 print(addr[0], f" Wrong T_PASW ({SHANONCE_PASW.index(pasw)}/{len(SHANONCE_PASW)})")
+                fehlversuchsliste[addr[0]] += 1
                 T_PASW_CHECK = False
                 break
         
@@ -58,8 +67,12 @@ while True:
         if H_PASW != MY_PASW:
             conn.close()
             print(addr[0], "Wrong MY_PASW")
+            fehlversuchsliste[addr[0]] += 1
             continue
         
+        # if verificatin concluded -> 3 retries next time
+        fehlversuchsliste[addr[0]] = 0
+
         # now, finally, the terminal logic :)
         while True:
             length = int.from_bytes(recv_exact(conn, 4), "big")

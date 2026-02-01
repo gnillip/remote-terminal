@@ -1,3 +1,3 @@
 #!/bin/bash
 pip install pyinstaller
-pyinstaller --onefile --uac-admin ./server.pyw
+pyinstaller --onefile ./server.pyw

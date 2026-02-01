@@ -18,12 +18,14 @@ def recv_exact(sock, n):
 
 PORT = 1337
 TODAY = datetime.date.today().strftime("%Y-%m-%d")
-MY_PASW = input("Your Password for the session: ") or "remote-terminal"
+MY_PASW = open("PASSWORD.txt", "r").read()
+SHANONCE_PASW = ["Rem-Ter!g", "Terry#Remus-g", "TR_!g", "G-2e+tr"]
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(("0.0.0.0", PORT))
 server.listen()
 
+print("server running...")
 while True:
     try:
         conn, addr = server.accept()
@@ -34,14 +36,20 @@ while True:
         fernet = Fernet(ENC_KEY)
 
         # send something, client sends sha256(something+Password)
-        nonce = "".join(random.choice(string.ascii_letters) for _ in range(7))
-        conn.sendall(len(fernet.encrypt(nonce.encode())).to_bytes(4, "big") + fernet.encrypt(nonce.encode()))
-        T_PASW_CHECK = hashlib.sha256((nonce+"Rem-Ter!g").encode()).hexdigest()
-        length = int.from_bytes(recv_exact(conn, 4), "big")
-        T_PASW = fernet.decrypt(recv_exact(conn, length))
-        if T_PASW.decode() != T_PASW_CHECK:
-            conn.close()
-            print(addr[0], " Wrong T_PASW_CHECK")
+        T_PASW_CHECK = True
+        for pasw in SHANONCE_PASW:
+            nonce = "".join(random.choice(string.ascii_letters) for _ in range(14))
+            conn.sendall(len(fernet.encrypt(nonce.encode())).to_bytes(4, "big") + fernet.encrypt(nonce.encode()))
+            T_PASW = hashlib.sha256((nonce[:10]+pasw).encode()).hexdigest()
+            U_PASW = fernet.decrypt( recv_exact(conn, int.from_bytes(recv_exact(conn, 4), "big")) ).decode()
+
+            if U_PASW != T_PASW:
+                conn.close()
+                print(addr[0], f" Wrong T_PASW ({SHANONCE_PASW.index(pasw)}/{len(SHANONCE_PASW)})")
+                T_PASW_CHECK = False
+                break
+        
+        if not T_PASW_CHECK:
             continue
         
         # Now my pasw, which i made

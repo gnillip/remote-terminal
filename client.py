@@ -9,6 +9,7 @@ else:
 PORT = 1337
 IP = input("IP: ")
 H_PASW = input("Password: ")
+T_PASW = ["Rem-Ter!g", "Terry#Remus-g", "TR_!g", "G-2e+tr"]
 
 
 def recv_exact(sock, n):
@@ -32,14 +33,14 @@ client.send(ENC_KEY)
 
 time.sleep(0.5)
 # T_PASW check
-nonce_length = int.from_bytes(recv_exact(client, 4), "big")
-nonce = fernet.decrypt( recv_exact(client, nonce_length) ).decode()
+for pasw in T_PASW:
+    nonce_length = int.from_bytes(recv_exact(client, 4), "big")
+    nonce = fernet.decrypt( recv_exact(client, nonce_length) ).decode()
 
-T_PASW = "Rem-Ter!g"
-T_PASW_CHECK = hashlib.sha256((nonce+T_PASW).encode()).hexdigest()
+    T_PASW_CHECK = hashlib.sha256((nonce[:10]+pasw).encode()).hexdigest()
 
-data = fernet.encrypt(str(T_PASW_CHECK).encode())
-client.sendall(len(data).to_bytes(4, "big") + data)
+    data = fernet.encrypt(str(T_PASW_CHECK).encode())
+    client.sendall(len(data).to_bytes(4, "big") + data)
 
 time.sleep(0.5)
 # H_PASW check

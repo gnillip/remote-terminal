@@ -1,4 +1,4 @@
-import os, socket, datetime, subprocess, hashlib, random, string, time
+import os, socket, subprocess, hashlib, random, string, time, json
 import DH_key_exchange as DH_KEY
 
 if os.name == "nt":
@@ -17,10 +17,10 @@ def recv_exact(sock, n):
 
 
 PORT = 1337
-TODAY = datetime.date.today().strftime("%Y-%m-%d")
 MY_PASW = open("PASSWORD.txt", "r").read()
 SHANONCE_PASW = ["Rem-Ter!g", "Terry#Remus-g", "TR_!g", "G-2e+tr"]
-fehlversuchsliste = {}
+with open("FEHLVERSUCHE.json", "r") as data:
+    fehlversuchsliste:dict = json.load(data)
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(("0.0.0.0", PORT))
@@ -29,6 +29,8 @@ server.listen()
 print("server running...")
 while True:
     try:
+        with open("FEHLVERSUCHE.json", "r") as data:
+            fehlversuchsliste = json.load(data)
         conn, addr = server.accept()
         print("Verbindung von: ", addr)
         if addr[0] not in fehlversuchsliste:
@@ -65,6 +67,8 @@ while True:
                 conn.close()
                 print(addr[0], f" Wrong T_PASW ({SHANONCE_PASW.index(pasw)}/{len(SHANONCE_PASW)})")
                 fehlversuchsliste[addr[0]] += 1
+                with open("FEHLVERSUCHE.json", "w") as data:
+                    json.dump(fehlversuchsliste, data, indent=4)
                 T_PASW_CHECK = False
                 break
         
@@ -78,10 +82,14 @@ while True:
             conn.close()
             print(addr[0], "Wrong MY_PASW")
             fehlversuchsliste[addr[0]] += 1
+            with open("VEHLVERSUCHE.json", "w") as data:
+                json.dump(fehlversuchsliste, data, indent=4)
             continue
         
         # if verificatin concluded -> 3 retries next time
         fehlversuchsliste[addr[0]] = 0
+        with open("FEHLVERSUCHE.json", "w") as data:
+            json.dump(fehlversuchsliste, data, indent=4)
 
         # now, finally, the terminal logic :)
         while True:

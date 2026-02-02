@@ -1,5 +1,5 @@
-import os, socket, datetime, time, hashlib
-from cryptography.fernet import Fernet
+import os, socket, time, hashlib
+import DH_key_exchange as DH_KEY
 
 if os.name == "nt":
     os.system("cls")
@@ -27,9 +27,16 @@ client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect((IP, PORT))
 
 # encryption key
-ENC_KEY = Fernet.generate_key()
-fernet = Fernet(ENC_KEY)
-client.send(ENC_KEY)
+p = int.from_bytes(client.recv(8192), "big")
+time.sleep(1)
+g = int.from_bytes(client.recv(4096), "big")
+
+fernet = DH_KEY.DH(p, g)
+their_pub_key = int.from_bytes(client.recv(4096), "big")
+
+client.send(fernet.public_key.to_bytes(len(str(fernet.public_key)), "big"))
+fernet.generate_shared_secret(their_pub_key)
+fernet.generate_AES_key()
 
 time.sleep(0.5)
 # T_PASW check

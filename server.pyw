@@ -1,5 +1,5 @@
-import os, socket, datetime, subprocess, hashlib, random, string
-from cryptography.fernet import Fernet
+import os, socket, datetime, subprocess, hashlib, random, string, time
+import DH_key_exchange as DH_KEY
 
 if os.name == "nt":
     os.system("cls")
@@ -40,8 +40,18 @@ while True:
                 print(addr[0], " zu viele Fehlversuche -> BAN")
 
         # encryption key
-        ENC_KEY = conn.recv(44)
-        fernet = Fernet(ENC_KEY)
+        p = 0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1
+        g = 2
+        conn.send(p.to_bytes(len(str(p)), "big"))
+        time.sleep(1)
+        conn.send(g.to_bytes(len(str(g)), "big"))
+
+        fernet = DH_KEY.DH(p, g)
+        conn.send(fernet.public_key.to_bytes(len(str(fernet.public_key)), "big"))
+
+        their_pub_key = int.from_bytes(conn.recv(8192), "big")
+        fernet.generate_shared_secret(their_pub_key)
+        fernet.generate_AES_key()
 
         # send something, client sends sha256(something+Password)
         T_PASW_CHECK = True

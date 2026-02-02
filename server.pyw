@@ -25,6 +25,7 @@ with open("FEHLVERSUCHE.json", "r") as data:
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(("0.0.0.0", PORT))
 server.listen()
+server.settimeout(120)
 
 print("server running...")
 while True:
